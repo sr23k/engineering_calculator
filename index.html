@@ -95,8 +95,8 @@
         <br>
         <a style = "color: #333;" href="https://github.com/sr23k/engineering_calculator" target="_blank">github.com/sr23k/engineering_calculator</a>
         <br>
-        <div id="version-info"></div>
-        <a href="engineering_calculator_version.html" download>Download for local use</a>
+        <div id="version-info"></div> <br>
+        <a href="engineering_calculator_version.html" download>Download for offline use</a>
     </div>
     
 
@@ -138,6 +138,11 @@
         Object.entries(engineeringConstants).forEach(([name, value]) => {
             parser.set(name, value);
         });
+
+        function findFreeVariable(equation){
+            console.log(math.parse(equation));
+            return 1;
+        }
 
         // Function to detect unit from an equation
         function detectUnit(equation, variable) {
@@ -282,6 +287,9 @@
             const lines = input.split('\n');
             let results = [];
 
+            const eqnAssign = /^[^=]*=[^=]*==[^=]*$/;
+            const standAloneEqn = /^[^\=]*==[^=]*$/;
+
             // Reset parser (but keep constants) and equations
             parser.clear();
             Object.entries(engineeringConstants).forEach(([name, value]) => {
@@ -314,13 +322,19 @@
                                 results.push(`${line} = ${solution.toString()}`);
                                 parser.set(variable, solution);
                             }
-                        } else if (line.includes('==')) {
+                        } else if (eqnAssign.test(line)) {
                             // Store equation for later use
                             const parts = line.split('=');
                             const name = parts[0].trim();
                             const equation = line.substring(line.indexOf('=') + 1).trim();
                             equations[name] = equation;
                             results.push(line);
+                        } else if (standAloneEqn.test(line)){
+                            variable = findFreeVariable(line);
+                            const equationName = "dummy";
+                            solution = solveEquation(equationName, variable);
+                            results.push(`${line} = ${solution.toString()}`);
+                            parser.set(variable, solution);
                         } else if (line.includes('=')) {
                             // Handle assignment
                             const parts = line.split('=');
