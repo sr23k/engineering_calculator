@@ -31,11 +31,13 @@ jobs:
       run: node inject-version.js
           
     - name: Commit and push changes
+      env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        git config --global user.name 'github-actions[bot]'
-        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-        git add .
+        git config user.name "GitHub Actions Bot"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add index.html engineering_calculator_v$VERSION.html
+        git commit -m "Update index.html and add engineering_calculator_v$VERSION.html with version and date"
+        git push "https://$GH_TOKEN@github.com/sr23k/engineering_calculator.git" HEAD:main
         git commit -m "Inline, Minify, and Version HTML with version $VERSION"
         git push
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
