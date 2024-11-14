@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Engineering Calculator</title>
+    <!--
+        This project uses math.js, which is licensed under the Apache License, Version 2.0 (the "License").
+        You may not use this file except in compliance with the License.
+        You may obtain a copy of the License at https://www.apache.org/licenses/LICENSE-2.0
+        Unless required by applicable law or agreed to in writing, software distributed under the License
+        is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+        See the License for the specific language governing permissions and limitations under the License.
+    -->
+    <script src="math.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .editor-container {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        #calculator-input {
+            width: 100%;
+            height: 200px;
+            font-family: monospace;
+            font-size: 14px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: vertical;
+        }
+        #output {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .footer {
+            margin-top: 20px;
+            padding: 15px;
+            border-top: 1px solid #ddd;
+            font-size: 14px;
+            color: #666;
+            text-align: center;
+        }
+        .footer a {
+            color: #4CAF50;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        .footer .highlight {
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h3>Input</h3>
+        <div class="editor-container">
+            <textarea id="calculator-input" placeholder="Enter your calculations here...">
+// Example using constants and unit solving
+T = 300 K
+P = 2 atm
+V = 0.1 m^3
+n = P * V / (R * T)  // Calculate moles using ideal gas law
+
+// Solve for required volume to get 2 moles
+eqn1 = P * V / (R * T) == 2 mol
+solve(eqn1, V)
+
+// Example with speed calculation
+v_initial = 10 m/s
+t = 2 s
+d = 100 m
+
+// Find acceleration needed to cover distance
+eqn2 = v_initial * t + 0.5 * a * t^2 == d
+solve(eqn2, a)
+            </textarea>
+            <button onclick="evaluateCalculator()">Evaluate</button>
+        </div>
+        <div class="output-container">
+            <h3>Results</h3>
+            <div id="output"></div>
+        </div>
+    </div>
+    <div class="footer">
+        Created by <span class="highlight">Shiv Raja</span> &nbsp; | &nbsp; 
+        <a href="https://www.linkedin.com/in/shiv-raja-b378a5216/" target="_blank">LinkedIn</a> &nbsp; | &nbsp; 
+        Copyright © 2024 Shiv Raja &nbsp; | &nbsp;
+        Powered by <a href="https://mathjs.org" target="_blank">mathjs.org</a>
+    </div>
+
+    <script src = dimension.js></script>   
+    <script>
+        // Create parser with all units available
+        const parser = math.parser();
+        const equations = {};
+
+        // Add engineering constants (extending math.js built-in constants)
+        const engineeringConstants = {
+            // Standard gravity
+            g: math.unit('9.80665 m/s^2'),
+            // Gas constant
+            R: math.unit('8.31446261815324 J/(mol*K)'),
+            // Boltzmann constant
+            k: math.unit('1.380649e-23 J/K'),
+            // Stefan-Boltzmann constant
+            sigma: math.unit('5.670374419e-8 W/(m^2*K^4)'),
+            // Planck constant
+            h: math.unit('6.62607015e-34 J*s'),
+            // Speed of light
+            c: math.unit('299792458 m/s'),
+            // Electron mass
+            me: math.unit('9.1093837015e-31 kg'),
+            // Proton mass
+            mp: math.unit('1.67262192369e-27 kg'),
+            // Atmospheric pressure
+            atm: math.unit('101325 Pa'),
+            // Water properties at standard conditions
+            rho_water: math.unit('998 kg/m^3'),
+            cp_water: math.unit('4186 J/(kg*K)'),
+            // Air properties at standard conditions
+            rho_air: math.unit('1.225 kg/m^3'),
+            cp_air: math.unit('1005 J/(kg*K)')
+        };
+
+        // Add constants to parser
+        Object.entries(engineeringConstants).forEach(([name, value]) => {
+            parser.set(name, value);
+        });
+
+        // Function to detect unit from an equation
+        function detectUnit(equation, variable) {
+            try {
+                console.log(math.parse(equation));
+                const sides = equation.split('==');
+                if (sides.length !== 2) return null;
+                
+                // Store current value if exists
+
+                const oldMap = parser.getAllAsMap();
+                newMap = new Map();
+                for (const [key, value] of oldMap) {
+                    if(math.typeOf(value) == "Unit"){
+                        newMap.set(key, new Dimension(value.dimensions));
+                    } else {
+                        newMap.set(key, new Dimension([0, 0, 0, 0, 0, 0, 0, 0, 0]));
+                    }
+                }
+
+                // Try with a simple unit value
+                newMap.set(variable, new Dimension([0, 0, 0, 0, 0, 0, 0, 0, 0], variable));
+
+                const left = math.evaluate(sides[0].trim(), newMap);
+                const right = math.evaluate(sides[1].trim(), newMap);
+
+                const finalExpression = math.subtract(left, right).var_vals;
+                const finalDimension = finalExpression.get(variable)[0];
+                const finalPower = finalExpression.get(variable)[1];
+                let unit = [`gram^${finalDimension[0]/finalPower}`,
+                            `meter^${finalDimension[1]/finalPower}`,
+                            `second^${finalDimension[2]/finalPower}`,
+                            `ampere^${finalDimension[3]/finalPower}`,
+                            `kelvin^${finalDimension[4]/finalPower}`,
+                            `candela^${finalDimension[5]/finalPower}`,
+                            `mole^${finalDimension[6]/finalPower}`,
+                            `deg^${finalDimension[7]/finalPower}`,
+                            `bits^${finalDimension[8]/finalPower}`
+                        ];
+                return unit.join(' ') || null;
+            } catch (error) {
+                throw new Error('Error in variable detection: ' + error.message);
+            }
+            return null;
+        }
+
+        function splitValueAndUnit(valueWithUnit) {
+            const [value, ...unit] = valueWithUnit.toString().split(' ');
+            return {
+                value: parseFloat(value),
+                unit: unit.join(' ') || null
+            };
+        }
+
+        // Add solve function with improved unit handling
+        function solveEquation(equationName, variable, initialGuess = 1.0) {
+            if (!(equationName in equations)) {
+                throw new Error(`Equation ${equationName} not found`);
+            }
+            const equation = equations[equationName];
+            const sides = equation.split('==');
+            if (sides.length !== 2) {
+                throw new Error('Invalid equation format. Use == for equations.');
+            }
+
+            // Get or detect unit
+            let unit;
+            try {
+                const currentValue = parser.get(variable);
+                unit = splitValueAndUnit(currentValue).unit;
+            } catch (error) {
+                unit = detectUnit(equation, variable);
+            }
+
+            if (!unit) {
+                throw new Error('Could not determine units for variable ' + variable);
+            }
+
+            const leftSide = sides[0].trim();
+            const rightSide = sides[1].trim();
+
+            // Create function that returns the difference between sides
+            function evaluateEquation(x) {
+                try{
+                    parser.set(variable, math.unit(x, unit));
+                    const left = parser.evaluate(leftSide);
+                    const right = parser.evaluate(rightSide);
+                    // Check if both sides have units, then convert them to scalars for comparison
+                    if (left.units && right.units) {
+                        return math.subtract(left, right).toNumber();
+                    } else {
+                        throw new Error('Units do not match in equation');
+                    }
+                } catch (error){
+                    throw new Error("Failed to evaluate expression: " + error.message);
+                }
+            }
+
+
+            // Newton-Raphson method with unit handling
+            function newtonRaphson(f, x0, tolerance = 1e-10, maxIterations = 100) {
+                let x = x0;
+                for (let i = 0; i < maxIterations; i++) {
+                    const fx = f(x);
+                    if (Math.abs(fx) < tolerance) {
+                        return x;
+                    }
+
+                    // Numerical derivative with appropriate scaling
+                    const h = Math.max(1e-10, Math.abs(x) * 1e-6);
+                    const df = (f(x + h) - fx) / h;
+                    
+                    if (df === 0) {
+                        throw new Error('Derivative is zero. Cannot continue.');
+                    }
+                    
+                    const delta = fx / df;
+                    x = x - delta;
+                }
+                throw new Error('Failed to converge');
+            }
+
+            try {
+                const current = parser.get(variable);
+                if (current && current.units) {
+                    initialValue = current.toNumber();
+                }
+            } catch (error) {
+                // Use default initial value
+            }
+
+            try {
+                const solution = newtonRaphson(evaluateEquation, initialValue);
+                return math.unit(solution, unit);
+            } catch(error){
+                throw new Error(`Failed to solve equation: ${error.message}`);
+            }
+        }
+
+        // Function to evaluate input
+        function evaluateCalculator() {
+            const input = document.getElementById('calculator-input').value;
+            const output = document.getElementById('output');
+            const lines = input.split('\n');
+            let results = [];
+
+            // Reset parser (but keep constants) and equations
+            parser.clear();
+            Object.entries(engineeringConstants).forEach(([name, value]) => {
+                parser.set(name, value);
+            });
+            Object.keys(equations).forEach(key => delete equations[key]);
+            
+            try {
+                for (let line of lines) {
+                    line = line.trim();
+                    if (!line || line.startsWith('//')) {
+                        results.push(line);
+                        continue;
+                    }
+
+                    try {
+                        if (line.includes('solve(')) {
+                            // Parse solve function call
+                            const match = line.match(/solve\((.*?),(.*?)\)/);
+                            if (match) {
+                                const equationName = match[1].trim();
+                                const variable = match[2].trim();
+                                let solution = null
+                                if(match.length > 3){
+                                    const initialGuess = match[3].trim();
+                                    solution = solveEquation(equationName, variable, initialGuess);
+                                } else {
+                                    solution = solveEquation(equationName, variable);
+                                }
+                                results.push(`${line} = ${solution.toString()}`);
+                                parser.set(variable, solution);
+                            }
+                        } else if (line.includes('==')) {
+                            // Store equation for later use
+                            const parts = line.split('=');
+                            const name = parts[0].trim();
+                            const equation = line.substring(line.indexOf('=') + 1).trim();
+                            equations[name] = equation;
+                            results.push(line);
+                        } else if (line.includes('=')) {
+                            // Handle assignment
+                            const parts = line.split('=');
+                            const name = parts[0].trim();
+                            const expr = parts[1].split('//')[0].trim(); // Remove comments
+                            const result = parser.evaluate(expr);
+                            parser.set(name, result);
+                            results.push(`${name} = ${result.toString()}`);
+                        } else {
+                            // Direct evaluation
+                            console.log(math.parse(line));
+                            const result = parser.evaluate(line);
+                            console.log(result);
+                            results.push(`${line} = ${result.toString()}`);
+                        }
+                    } catch (error) {
+                        results.push(`Error in line "${line}": ${error.message}`);
+                    }
+                }
+                output.textContent = results.join('\n');
+            } catch (error) {
+                output.textContent = `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
