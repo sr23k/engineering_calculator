@@ -1,0 +1,46 @@
+name: Inline, Minify, and Version HTML
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  inline-js:
+    if: github.actor != 'github-actions[bot]'  # Skip if the actor is the bot
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '16'
+
+    - name: Install dependencies
+      run: npm install html-minifier
+
+    - name: Set VERSION environment variable
+      run: echo "VERSION=${{ github.run_number }}" >> $GITHUB_ENV  # Use run number for versioning
+
+    - name: Inline and Minify JavaScript in HTML
+      run: node inline-js.js index.html
+
+    - name: Inject version and date
+      run: |
+        DATE=$(date +'%Y-%m-%d')
+        VERSION_TEXT="Version: $VERSION | Last Updated: $DATE"
+        sed -i 's|<div id="version-info">.*</div>|<div id="version-info">'"$VERSION_TEXT"'</div>|' index.html
+        sed -i 's|<a href="engineering_calculator_version\.html" download>|<a href="engineering_calculator_v'"$VERSION"'.html" download>|' index.html
+
+    - name: Commit and push changes
+      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git add .
+        git commit -m "Inline, Minify, and Version HTML with version $VERSION"
+        git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
