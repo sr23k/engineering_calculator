@@ -24,17 +24,17 @@ jobs:
 
     - name: Set VERSION environment variable
       run: echo "VERSION=${{ github.run_number }}" >> $GITHUB_ENV  # Use run number for versioning
-
+    
     - name: Inline and Minify JavaScript in HTML
       run: node inline-js.js index.html
-
+    
     - name: Inject version and date
       run: |
         DATE=$(date +'%Y-%m-%d')
         VERSION_TEXT="Version: $VERSION | Last Updated: $DATE"
-        sed -i "s|<div id=\"version-info\">.*</div>|<div id=\"version-info\">$VERSION_TEXT</div>|" path/to/your-file.html    
+        sed -i "s|<div id=\"version-info\">.*</div>|<div id=\"version-info\">$VERSION_TEXT</div>|" index.html
         sed -i "s|<a href=\"engineering_calculator_version\.html\" download>|<a href=\"engineering_calculator_v$VERSION.html\" download>|" index.html
-
+    
     - name: Commit and push changes
       run: |
         git config --global user.name 'github-actions[bot]'
