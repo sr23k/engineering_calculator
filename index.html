@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Engineering Calculator</title>
     <!--
         This project uses math.js, which is licensed under the Apache License, Version 2.0 (the "License").
         You may not use this file except in compliance with the License.
@@ -11,9 +9,28 @@
         is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
         See the License for the specific language governing permissions and limitations under the License.
     -->
+    <meta charset="UTF-8">
+    <title>Engineering Calculator</title>
+    <!-- Move both checks to a single script block at the very start -->
+    <script>
+        // Check dark mode preference immediately
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.documentElement.classList.add('dark-mode');
+        }
+
+        // Create function to set initial content
+        function setInitialContent() {
+            const savedInput = localStorage.getItem('calculatorInput');
+            const textarea = document.getElementById('calculator-input');
+            textarea.value = savedInput || defaultContent;
+        }
+
+        // Execute as soon as DOM is ready
+        document.addEventListener('DOMContentLoaded', setInitialContent);
+    </script>
     <script src="math.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="katex.min.css">
+    <script defer src="katex.min.js"></script>
 
     <style>
         body {
@@ -132,9 +149,9 @@
             padding-left: 0px !important;
         }
         .katex-display {
-            margin-left: 0px !important;
+            margin-left: 1px !important;
             margin-bottom: 0px !important;
-            margin-top: 0px !important;
+            margin-top: 1px !important;
         }
         .editor-container h3 {
             display: inline-block;
@@ -160,7 +177,7 @@
         
 
         /* Add dark mode styles */
-        body.dark-mode {
+        .dark-mode body{
             background-color: #1e1e1e;
             color: #e0e0e0;
         }
@@ -198,11 +215,10 @@
             background: #1b5e20;
         }
 
-        /* Update theme-toggle styles */
-        .theme-toggle {
+        /* Update theme-toggle styles to accommodate both buttons */
+        .theme-toggle, .reset-input {
             position: absolute; 
-            bottom: 20px;    /* Change from top to bottom */
-            right: 20px;
+            bottom: 20px;
             padding: 8px 12px;
             border-radius: 4px;
             background: #4CAF50;
@@ -211,7 +227,15 @@
             cursor: pointer;
         }
 
-        .dark-mode .theme-toggle {
+        .theme-toggle {
+            right: 20px;
+        }
+
+        .reset-input {
+            right: 140px;  /* Position to the left of theme toggle */
+        }
+
+        .dark-mode .theme-toggle, .dark-mode .reset-input {
             background: #2e7d32;
         }
 
@@ -221,6 +245,20 @@
             overflow-x: auto;
             overflow-y: hidden;
         }
+
+        .save-message {
+            opacity: 0;
+            color: #4CAF50;
+            margin-right: 10px;
+        }
+
+        .dark-mode .save-message {
+            color: #45a049;
+        }
+
+        .save-message.show {
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
@@ -228,6 +266,7 @@
         <div class="editor-container">
             <div class="editor-header">
                 <h3>Input</h3>
+                <div class="save-message" id="saveMessage">Saved</div>
                 <div> Shift+Enter or <button onclick="evaluateCalculator()">Evaluate</button> </div>
             </div>
             <textarea id="calculator-input" spellcheck="false" onkeydown="handleKeyPress(event)"></textarea>
@@ -242,15 +281,16 @@
         Created by <a class = "dark-link", href="https://www.linkedin.com/in/shiv-raja-b378a5216/" target="_blank">Shiv Raja</a> &nbsp; | &nbsp; 
         Copyright © 2024 Shiv Raja &nbsp; | &nbsp;
         Powered by <a href="https://mathjs.org" target="_blank">mathjs.org</a> &nbsp; | &nbsp;
-        Licensed under <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache 2.0</a>&nbsp;| &nbsp;
+        Licensed under <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache 2.0</a>
         <br>
         <a class = "dark-link", href="https://github.com/sr23k/engineering_calculator" target="_blank">github.com/sr23k/engineering_calculator</a>
-        v0.0 &nbsp; | &nbsp;  <a href="engineering_calculator_v0p0.html" download>Download for offline use</a>  &nbsp; | &nbsp; WIP: double-check outputs
+        v0.0 &nbsp; | &nbsp;  <a href="index.html" download>Download for offline use</a>  &nbsp; | &nbsp; WIP: double-check outputs
+        <button class="reset-input" onclick="resetInput()">Reset Input</button>
         <button class="theme-toggle" onclick="toggleTheme()">Toggle Theme</button>
     </div>
     
     <script>
-    let startX, startWidthPercent;
+    let startX, startWidthPercent, resizerWidthPercent;
     const minWidthPercent = 20;
     const maxWidthPercent = 80;
 
@@ -259,8 +299,11 @@
         startX = e.clientX;
         const editorContainer = document.querySelector('.editor-container');
         const containerWidth = document.querySelector('.container').offsetWidth;
-        startWidthPercent = (editorContainer.offsetWidth / containerWidth) * 100;
-        
+        const outputContainer = document.querySelector('.output-container');
+        const resizer = document.getElementById('resizer');
+        resizerWidthPercent = (resizer.scrollWidth / containerWidth) * 100;
+        startWidthPercent = (editorContainer.offsetWidth / containerWidth) * 100 - 1.2;
+        console.log(startWidthPercent, resizerWidthPercent);
         document.addEventListener('mousemove', doDrag);
         document.addEventListener('mouseup', stopDrag);
     }
@@ -275,8 +318,8 @@
         const deltaPercent = (deltaX / containerWidth) * 100;
         let newWidthPercent = Math.min(maxWidthPercent, Math.max(minWidthPercent, startWidthPercent + deltaPercent));
         
-        editorContainer.style.flex = `0 0 ${newWidthPercent}%`;
-        outputContainer.style.flex = `0 0 ${100 - newWidthPercent - 2}%`;  // Subtract resizer width percentage
+        editorContainer.style.flex = `0 0 ${newWidthPercent - resizerWidthPercent/2}%`;
+        outputContainer.style.flex = `0 0 ${100 - newWidthPercent - resizerWidthPercent/2 - 2.9}%`;  // Subtract resizer width percentage
     }
 
     function stopDrag() {
@@ -284,13 +327,6 @@
         document.removeEventListener('mouseup', stopDrag);
     }
 
-    // document.addEventListener('DOMContentLoaded', () => {
-    //     const editorHeader = document.querySelector('.editor-header');
-    //     const outputHeader = document.querySelector('.output-header');
-    //     const outputHeaderText = outputHeader.querySelector('h3');
-    //     outputHeader.style.paddingTop = editorHeader.offsetHeight/2 - outputHeaderText.offsetHeight/2 + 'px';
-    //     outputHeader.style.paddingBottom = editorHeader.offsetHeight - outputHeader.offsetHeight + 'px';
-    // });
     </script>
 
     <script src="dimension.js"></script>   
@@ -401,9 +437,11 @@
 
             // Get or detect unit
             let unit;
+            let knownUnit = false;
             try {
                 const currentValue = parser.get(variable);
                 unit = splitValueAndUnit(currentValue).unit;
+                knownUnit = true;
             } catch (error) {
                 unit = detectUnit(equation, variable);
             }
@@ -467,7 +505,12 @@
 
             try {
                 const solution = newtonRaphson(evaluateEquation, initialValue);
-                return math.unit(solution, unit);
+                result = math.unit(solution, unit);
+                if (knownUnit){
+                    return `\\mathrm{solve}\\left(\\mathrm{${equationName}}, \\mathrm{${variable}}, ${initialValue}\\right) = ${math.parse(result.toString()).toTex()}`;
+                } else {
+                    return `\\mathrm{solve}\\left(\\mathrm{${equationName}}, \\mathrm{${variable}}\\right) = ${math.parse(solution.toString()).toTex()}`;;
+                }
             } catch(error){
                 throw new Error(`Failed to solve equation: ${error.message}`);
             }
@@ -478,6 +521,10 @@
             if (event.key === 'Enter' && (event.ctrlKey || event.shiftKey)) {
                 event.preventDefault();  // Prevent default newline
                 evaluateCalculator();
+            }
+            if(event.key === 's' && event.ctrlKey){
+                event.preventDefault();  // Prevent browser save dialog
+                saveInput();
             }
         }
 
@@ -526,13 +573,11 @@
                                 let solution;
                                 if(match.length > 2){
                                     const initialValue = match[2].trim();
-                                    solution = solveEquation(equationName, variable, initialValue);
-                                    resultText = `\\mathrm{solve}\\left(\\mathrm{${equationName}}, \\mathrm{${variable}}, ${initialValue}\\right) = ${math.parse(solution.toString()).toTex()}`;
+                                    resultText = solveEquation(equationName, variable, initialValue);
                                 } else {
-                                    solution = solveEquation(equationName, variable);
-                                    resultText = `\\mathrm{solve}\\left(\\mathrm{${equationName}}, \\mathrm{${variable}}\\right) = ${math.parse(solution.toString()).toTex()}`;
+                                    resultText = solveEquation(equationName, variable);
                                 }
-                                parser.set(variable, solution);
+                                parser.set(variable, result);
                             }
                         } else if (eqnAssign.test(line)) {
                             // Store equation for later use
@@ -589,7 +634,7 @@
                 output.innerHTML = `Error: ${error.message}`;
             }
         }
-        document.getElementById('calculator-input').value = `// Function reference: https://mathjs.org/docs/reference/functions.html
+        const defaultContent = `// Function reference: https://mathjs.org/docs/reference/functions.html
 // Example using constants and unit solving
 T = 300 K
 P = 2 atm
@@ -618,21 +663,33 @@ solve(eqn2, a)`;
     </script>
 
     <script>
-        // Add this before your existing scripts
         function toggleTheme() {
-            document.body.classList.toggle('dark-mode');
-            // Optionally save preference
-            const isDarkMode = document.body.classList.contains('dark-mode');
+            document.documentElement.classList.toggle('dark-mode');
+            const isDarkMode = document.documentElement.classList.contains('dark-mode');
             localStorage.setItem('darkMode', isDarkMode);
         }
+        function saveInput() {
+        const input = document.getElementById('calculator-input').value;
+            localStorage.setItem('calculatorInput', input);
+            
+            // Show save message
+            const saveMessage = document.getElementById('saveMessage');
+            saveMessage.classList.add('show');
+            
+            // Hide after 1 second
+            setTimeout(() => {
+                saveMessage.classList.remove('show');
+            }, 1000);
+        }
+    </script>
 
-        // Load saved theme preference
-        document.addEventListener('DOMContentLoaded', () => {
-            const isDarkMode = localStorage.getItem('darkMode') === 'true';
-            if (isDarkMode) {
-                document.body.classList.add('dark-mode');
+    <script>
+        function resetInput() {
+            if (confirm('Are you sure you want to reset the input to default example?')) {
+                document.getElementById('calculator-input').value = defaultContent;
+                saveInput();  // Save the default content to localStorage
             }
-        });
+        }
     </script>
 </body>
 </html>
