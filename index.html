@@ -424,31 +424,39 @@
             };
         }
 
-        function resolveVariableProperties(equation, variable, initialValue = "1.0") {
-            // Get or detect unit
+        function resolveVariableProperties(equation, variable, initialValue = null) {
             let unit;
             let knownUnit = false;
-            try {
-                const currentValue = parser.get(variable);
-                unit = splitValueAndUnit(currentValue).unit;
-                knownUnit = true;
-            } catch (error) {
-                unit = detectUnit(equation, variable);
+            let parsedInitialValue;
+
+            if (initialValue !== null) {
+                const { value, unit: initialUnit } = splitValueAndUnit(initialValue);
+                if (initialUnit) {
+                    unit = initialUnit;
+                    knownUnit = true;
+                }else{
+                    unit = detectUnit(equation, variable);
+                }
+                parsedInitialValue = value;
+            } else {
+                try {
+                    const currentValue = parser.get(variable);
+                    const { value, unit: currentUnit } = splitValueAndUnit(currentValue);
+                    unit = currentUnit;
+                    parsedInitialValue = value;
+                } catch (error) {
+                    unit = detectUnit(equation, variable);
+                    parsedInitialValue = 1.0;
+                }
             }
 
             if (!unit) {
                 throw new Error('Could not determine units for variable ' + variable);
             }
 
-            // Resolve initial value
-            let parsedInitialValue = math.evaluate(initialValue);
-            try {
-                const current = parser.get(variable);
-                if (current && current.units) {
-                    parsedInitialValue = current.toNumber();
-                }
-            } catch (error) {
-                // Use provided initial value
+            // Ensure parsedInitialValue is a number
+            if (typeof parsedInitialValue !== 'number') {
+                parsedInitialValue = math.evaluate(parsedInitialValue).toNumber();
             }
 
             return {
@@ -458,7 +466,7 @@
             };
         }
 
-        function solveEquation(equationName, variable, initialValue = "1.0") {
+        function solveEquation(equationName, variable, initialValue = null) {
             if (!(equationName in equations)) {
                 throw new Error(`Equation ${equationName} not found`);
             }
@@ -538,13 +546,13 @@
                 const parsingResult = parseInputsforPrinting();
                 const solution = newtonRaphson(evaluateEquation, parsedInitialValue);
                 const result = math.unit(solution, unit);
-                if (knownUnit){
-                    return [`\\mathrm{solve}\\left(\\mathrm{${equationName}}, \\mathrm{${variable}}, ${initialValue}\\right)`,
+                if (initialValue !== null){
+                    return [`\\mathrm{solve}\\left(\\mathrm{${equationName}}, \\mathrm{${variable}}, ${parsedInitialValue}\\right) \\to`,
                             `\\to ${parsingResult}`,
                             `\\to \\mathrm{${variable}} := ${math.parse(result.toString()).toTex()}`,
                             result];
                 } else {
-                    return [`\\mathrm{solve}\\left(\\mathrm{${equationName}}, \\mathrm{${variable}}\\right)`,
+                    return [`\\mathrm{solve}\\left(\\mathrm{${equationName}}, \\mathrm{${variable}}\\right) \\to`,
                             `\\to ${parsingResult}`,
                             `\\to \\mathrm{${variable}} := ${math.parse(result.toString()).toTex()}`,
                             result];
