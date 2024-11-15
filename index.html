@@ -424,17 +424,7 @@
             };
         }
 
-        // Add solve function with improved unit handling
-        function solveEquation(equationName, variable, initialValue = "1.0") {
-            if (!(equationName in equations)) {
-                throw new Error(`Equation ${equationName} not found`);
-            }
-            const equation = equations[equationName];
-            const sides = equation.split('==');
-            if (sides.length !== 2) {
-                throw new Error('Invalid equation format. Use == for equations.');
-            }
-
+        function resolveVariableProperties(equation, variable, initialValue = "1.0") {
             // Get or detect unit
             let unit;
             let knownUnit = false;
@@ -450,6 +440,38 @@
                 throw new Error('Could not determine units for variable ' + variable);
             }
 
+            // Resolve initial value
+            let parsedInitialValue = math.evaluate(initialValue);
+            try {
+                const current = parser.get(variable);
+                if (current && current.units) {
+                    parsedInitialValue = current.toNumber();
+                }
+            } catch (error) {
+                // Use provided initial value
+            }
+
+            return {
+                unit,
+                knownUnit,
+                parsedInitialValue
+            };
+        }
+
+        function solveEquation(equationName, variable, initialValue = "1.0") {
+            if (!(equationName in equations)) {
+                throw new Error(`Equation ${equationName} not found`);
+            }
+            const equation = equations[equationName];
+            const sides = equation.split('==');
+            if (sides.length !== 2) {
+                throw new Error('Invalid equation format. Use == for equations.');
+            }
+
+            // Use the new function to get variable properties
+            const { unit, knownUnit, parsedInitialValue } = resolveVariableProperties(equation, variable, initialValue);
+
+            // Rest of the function remains the same...
             const leftSide = sides[0].trim();
             const rightSide = sides[1].trim();
 
@@ -512,29 +534,19 @@
                 return parsingResult;
             }
 
-            parsedInitialValue = math.evaluate(initialValue);
-            try {
-                const current = parser.get(variable);
-                if (current && current.units) {
-                    initialValue = current.toNumber();
-                }
-            } catch (error) {
-                // Use default initial value
-            }
-
             try {
                 const parsingResult = parseInputsforPrinting();
                 const solution = newtonRaphson(evaluateEquation, parsedInitialValue);
-                result = math.unit(solution, unit);
+                const result = math.unit(solution, unit);
                 if (knownUnit){
                     return [`\\mathrm{solve}\\left(\\mathrm{${equationName}}, \\mathrm{${variable}}, ${initialValue}\\right)`,
                             `\\to ${parsingResult}`,
-                            `\\to \\mathrm{${variable}} := ${math.parse(solution.toString()).toTex()}`,
+                            `\\to \\mathrm{${variable}} := ${math.parse(result.toString()).toTex()}`,
                             result];
                 } else {
                     return [`\\mathrm{solve}\\left(\\mathrm{${equationName}}, \\mathrm{${variable}}\\right)`,
                             `\\to ${parsingResult}`,
-                            `\\to \\mathrm{${variable}} := ${math.parse(solution.toString()).toTex()}`,
+                            `\\to \\mathrm{${variable}} := ${math.parse(result.toString()).toTex()}`,
                             result];
                 }
             } catch(error){
