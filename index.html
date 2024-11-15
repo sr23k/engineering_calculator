@@ -24,11 +24,15 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            align-items:center;
         }
         .container {
             flex: 1;
             display: flex;
             min-height: 0;
+            width: 100%;
+            max-width: 98%;
+            overflow: visible;
         }
         .editor-container, .output-container {
             flex: 1;
@@ -118,7 +122,10 @@
             overflow-y: auto;
             margin: 10px 0;
             font-size: 0.9em;
-            
+            border-style: solid;
+            border-width: 1px;
+            border-color: rgb(118, 118, 118);
+            padding: 2px;
         }
         .katex {
             font-size: 1.1em !important;
@@ -133,16 +140,24 @@
             display: inline-block;
             margin-right: 10px;
         }
-        .editor-header {
+        .editor-header, .output-header {
             display: flex;
             align-items: center;
-            margin-bottom: 10px;
             justify-content: space-between;
+            min-height: 2.5em;
         }
-        .editor-header h3 {
+        
+        .editor-header h3, .output-header h3 {
+            margin: 0;
+        }
+        .output-header h3 {
             margin: 0;
             margin-right: 10px;
         }
+        .output-header {
+            margin-top: calc((1.17em - 1em) / 2);
+        } 
+        
 
         /* Add dark mode styles */
         body.dark-mode {
@@ -159,6 +174,9 @@
             background: #1e1e1e;
             border-color: #404040;
             color: #e0e0e0;
+        }
+        .dark-mode #output {
+            border-color: rgb(64 64 64);
         }
 
         .dark-mode #calculator-input {
@@ -196,6 +214,13 @@
         .dark-mode .theme-toggle {
             background: #2e7d32;
         }
+
+        /* Add this to ensure KaTeX equations don't overflow */
+        #output div {
+            max-width: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
     </style>
 </head>
 <body>
@@ -203,13 +228,13 @@
         <div class="editor-container">
             <div class="editor-header">
                 <h3>Input</h3>
-                <div> Shift-Enter or <button onclick="evaluateCalculator()">Evaluate</button> </div>
+                <div> Shift+Enter or <button onclick="evaluateCalculator()">Evaluate</button> </div>
             </div>
             <textarea id="calculator-input" spellcheck="false" onkeydown="handleKeyPress(event)"></textarea>
         </div>
         <div id="resizer" onmousedown="startDrag(event)"></div>
         <div class="output-container">
-            <h3>Results</h3>
+            <div class = "output-header"><h3>Results</h3></div>
             <div id="output"></div>
         </div>
     </div>
@@ -259,15 +284,13 @@
         document.removeEventListener('mouseup', stopDrag);
     }
 
-    // Initialize containers with percentage-based widths
-    document.addEventListener('DOMContentLoaded', () => {
-        const defaultWidthPercent = 49; // Slightly less than 50 to account for resizer
-        const editorContainer = document.querySelector('.editor-container');
-        const outputContainer = document.querySelector('.output-container');
-        
-        editorContainer.style.flex = `0 0 ${defaultWidthPercent}%`;
-        outputContainer.style.flex = `0 0 ${100 - defaultWidthPercent - 2}%`;  // Subtract resizer width percentage
-    });
+    // document.addEventListener('DOMContentLoaded', () => {
+    //     const editorHeader = document.querySelector('.editor-header');
+    //     const outputHeader = document.querySelector('.output-header');
+    //     const outputHeaderText = outputHeader.querySelector('h3');
+    //     outputHeader.style.paddingTop = editorHeader.offsetHeight/2 - outputHeaderText.offsetHeight/2 + 'px';
+    //     outputHeader.style.paddingBottom = editorHeader.offsetHeight - outputHeader.offsetHeight + 'px';
+    // });
     </script>
 
     <script src="dimension.js"></script>   
