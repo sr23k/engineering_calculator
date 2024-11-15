@@ -527,9 +527,15 @@
                 const solution = newtonRaphson(evaluateEquation, parsedInitialValue);
                 result = math.unit(solution, unit);
                 if (knownUnit){
-                    return `\\mathrm{solve}\\left(\\mathrm{${equationName}}, \\mathrm{${variable}}, ${initialValue}\\right) = ${parsingResult} \\to ${math.parse(solution.toString()).toTex()}`;
+                    return [`\\mathrm{solve}\\left(\\mathrm{${equationName}}, \\mathrm{${variable}}, ${initialValue}\\right)`,
+                            `\\to ${parsingResult}`,
+                            `\\to \\mathrm{${variable}} := ${math.parse(solution.toString()).toTex()}`,
+                            result];
                 } else {
-                    return `\\mathrm{solve}\\left(\\mathrm{${equationName}}, \\mathrm{${variable}}\\right) = ${parsingResult} \\to ${math.parse(solution.toString()).toTex()}`;;
+                    return [`\\mathrm{solve}\\left(\\mathrm{${equationName}}, \\mathrm{${variable}}\\right)`,
+                            `\\to ${parsingResult}`,
+                            `\\to \\mathrm{${variable}} := ${math.parse(solution.toString()).toTex()}`,
+                            result];
                 }
             } catch(error){
                 throw new Error(`Failed to solve equation: ${error.message}`);
@@ -546,6 +552,16 @@
                 event.preventDefault();  // Prevent browser save dialog
                 saveInput();
             }
+        }
+
+        function pushResult(resultText){
+            const resultDiv = document.createElement('div');
+            katex.render(resultText, resultDiv, {
+                displayMode: true,
+                throwOnError: false,
+                fleqn: true,
+            });
+            output.appendChild(resultDiv);
         }
 
         // Function to evaluate input
@@ -583,7 +599,6 @@
                     }
 
                     try {
-                        let resultText;
                         if (line.includes('solve(')) {
                             // Handle solve function...
                             const match = line.match(/solve\(([^)]+)\)/)[1].split(/\s*,\s*/);
@@ -593,11 +608,17 @@
                                 let solution;
                                 if(match.length > 2){
                                     const initialValue = match[2].trim();
-                                    resultText = solveEquation(equationName, variable, initialValue);
+                                    [result1, result2, result3, result4] = solveEquation(equationName, variable, initialValue);
+                                    pushResult(result1);
+                                    pushResult(result2);
+                                    pushResult(result3);
                                 } else {
-                                    resultText = solveEquation(equationName, variable);
+                                    [result1, result2, result3, result4] = solveEquation(equationName, variable);
+                                    pushResult(result1);
+                                    pushResult(result2);
+                                    pushResult(result3);
                                 }
-                                parser.set(variable, result);
+                                parser.set(variable, result4);
                             }
                         } else if (eqnAssign.test(line)) {
                             // Store equation for later use
@@ -605,12 +626,12 @@
                             const name = parts[0].trim();
                             const equation = line.substring(line.indexOf('=') + 1).trim().split('//')[0].trim();
                             equations[name] = equation;
-                            resultText = `\\mathrm{${name}} := ${math.parse(equation).toTex()}`;
+                            pushResult(`\\mathrm{${name}} := ${math.parse(equation).toTex()}`);
                         } else if (standAloneEqn.test(line)){
                             variable = findFreeVariable(line);
                             const equationName = "dummy";
                             solution = solveEquation(equationName, variable);
-                            resultText = `\\mathrm{${line}} = ${math.parse(solution.toString()).toTex()}`;
+                            pushResult(`\\mathrm{${line}} = ${math.parse(solution.toString()).toTex()}`);
                             parser.set(variable, solution);
                         } else if (line.includes('=')) {
                             // Handle assignment
@@ -619,28 +640,21 @@
                             const expr = parts[1].split('//')[0].trim(); // Remove comments
                             const result = parser.evaluate(expr);
                             parser.set(name, result);
-                            resultText = `${name} := ${math.parse(expr.toString()).toTex()} \\to ${math.parse(result.toString()).toTex()}`;
+                            pushResult(`${name} := ${math.parse(expr.toString()).toTex()} \\to ${math.parse(result.toString()).toTex()}`);
                         } else if(line.includes('to')){
                             // Handle unit conversion
                             const parts = line.split('to');
                             const value = parts[0].trim();
                             const unit = parts[1].trim();
                             const result = parser.evaluate(line);
-                            resultText = `\\text{${value}} \\to \\mathrm{${unit}} = ${math.parse(result.toString()).toTex()}`;
+                            pushResult(`\\text{${value}} \\to \\mathrm{${unit}} = ${math.parse(result.toString()).toTex()}`)
                         } else{
                             // Direct evaluation
                             const result = parser.evaluate(line);
-                            resultText = `\\text{${line}} := ${math.parse(result.toString()).toTex()}`;
+                            pushResult(`\\text{${line}} := ${math.parse(result.toString()).toTex()}`)
                         }
 
                         // Create a new div for each result and render with KaTeX
-                        const resultDiv = document.createElement('div');
-                        katex.render(resultText, resultDiv, {
-                            displayMode: true,
-                            throwOnError: false,
-                            fleqn: true,
-                        });
-                        output.appendChild(resultDiv);
 
                     } catch (error) {
                         const errorDiv = document.createElement('div');
