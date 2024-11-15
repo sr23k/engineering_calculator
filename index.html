@@ -143,6 +143,7 @@
             border-width: 1px;
             border-color: rgb(118, 118, 118);
             padding: 2px;
+            padding-left: 4 px;
         }
         .katex {
             font-size: 1.1em !important;
@@ -303,7 +304,6 @@
         const resizer = document.getElementById('resizer');
         resizerWidthPercent = (resizer.scrollWidth / containerWidth) * 100;
         startWidthPercent = (editorContainer.offsetWidth / containerWidth) * 100 - 1.2;
-        console.log(startWidthPercent, resizerWidthPercent);
         document.addEventListener('mousemove', doDrag);
         document.addEventListener('mouseup', stopDrag);
     }
@@ -493,7 +493,26 @@
                 }
                 throw new Error('Failed to converge');
             }
-            initialValue = math.evaluate(initialValue);
+            console.log(math.parse(equation));
+            function parseInputsforPrinting(){
+                const oldMap = parser.getAllAsMap();
+                parsedEquation = math.parse(equation);
+                const transformed = parsedEquation.transform(function (node, path, parent) {
+                    if (node.isSymbolNode && node.name !== variable) {
+                        return math.parse(parser.evaluate(node.name).toString());
+                    }
+                    else if(node.isSymbolNode && node.name === variable){
+                        return new math.AssignmentNode(node, math.parse(parser.evaluate(unit).toString()))
+                    }
+                    else {
+                        return node
+                    }
+                })
+                parsingResult = transformed.toTex();
+                return parsingResult;
+            }
+
+            parsedInitialValue = math.evaluate(initialValue);
             try {
                 const current = parser.get(variable);
                 if (current && current.units) {
@@ -504,12 +523,13 @@
             }
 
             try {
-                const solution = newtonRaphson(evaluateEquation, initialValue);
+                const parsingResult = parseInputsforPrinting();
+                const solution = newtonRaphson(evaluateEquation, parsedInitialValue);
                 result = math.unit(solution, unit);
                 if (knownUnit){
-                    return `\\mathrm{solve}\\left(\\mathrm{${equationName}}, \\mathrm{${variable}}, ${initialValue}\\right) = ${math.parse(result.toString()).toTex()}`;
+                    return `\\mathrm{solve}\\left(\\mathrm{${equationName}}, \\mathrm{${variable}}, ${initialValue}\\right) = ${parsingResult} \\to ${math.parse(solution.toString()).toTex()}`;
                 } else {
-                    return `\\mathrm{solve}\\left(\\mathrm{${equationName}}, \\mathrm{${variable}}\\right) = ${math.parse(solution.toString()).toTex()}`;;
+                    return `\\mathrm{solve}\\left(\\mathrm{${equationName}}, \\mathrm{${variable}}\\right) = ${parsingResult} \\to ${math.parse(solution.toString()).toTex()}`;;
                 }
             } catch(error){
                 throw new Error(`Failed to solve equation: ${error.message}`);
@@ -585,7 +605,6 @@
                             const name = parts[0].trim();
                             const equation = line.substring(line.indexOf('=') + 1).trim().split('//')[0].trim();
                             equations[name] = equation;
-                            console.log(math.parse(equation).toTex());
                             resultText = `\\mathrm{${name}} := ${math.parse(equation).toTex()}`;
                         } else if (standAloneEqn.test(line)){
                             variable = findFreeVariable(line);
