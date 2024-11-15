@@ -12,50 +12,48 @@
         See the License for the specific language governing permissions and limitations under the License.
     -->
     <script src="math.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
+
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            max-width: 100%;
-            margin: 0 auto;
-            padding: 20px;
-            line-height: 1.6;
+            margin: 0;
+            padding: 10px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
         .container {
+            flex: 1;
             display: flex;
-            height: calc(100vh - 100px);
+            min-height: 0;
         }
         .editor-container, .output-container {
             flex: 1;
             padding: 10px;
-            overflow: auto;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
         }
         .editor-container {
             background: #f5f5f5;
             border: 1px solid #ddd;
             border-radius: 4px;
-            margin-right: 5px;
         }
         .output-container {
             background: white;
             border: 1px solid #ddd;
             border-radius: 4px;
-            margin-left: 5px;
         }
         #calculator-input {
+            flex: 1;
             width: 100%;
-            height: calc(100% - 50px);
-            font-family: monospace;
-            font-size: 14px;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+            box-sizing: border-box;
+            margin: 10px 0;
+            overflow-y: auto;
             resize: none;
-        }
-        #output {
-            height: calc(100% - 40px);
-            white-space: pre-wrap;
-            font-family: monospace;
-            overflow: auto;
         }
         button {
             background: #4CAF50;
@@ -64,18 +62,18 @@
             padding: 10px 20px;
             border-radius: 4px;
             cursor: pointer;
-            margin-top: 10px;
+            margin-top: 0;
         }
         button:hover {
             background: #45a049;
         }
         .footer {
-            margin-top: 20px;
-            padding: 15px;
+            padding: 20px;
             border-top: 1px solid #ddd;
             font-size: 14px;
             color: #666;
             text-align: center;
+            margin-top: 10px;
         }
         .footer a {
             color: #4CAF50;
@@ -85,19 +83,129 @@
         .footer a:hover {
             text-decoration: underline;
         }
+        .footer .dark-link {
+            color:#333;
+        }
+        .dark-mode .footer .dark-link {
+            color:#d8d8d8;
+        }
         #resizer {
-            width: 10px;
+            width: 8px;
             background: #ddd;
             cursor: col-resize;
+            flex: 0 0 auto;
+            transition: background 0.3s;
+        }
+
+        #resizer:hover {
+            background: #999;
+        }
+
+        .dark-mode #resizer {
+            background: #404040;
+        }
+
+        .dark-mode #resizer:hover {
+            background: #666;
+        }
+
+        #output div.error {
+            color: #d32f2f;
+            font-family: monospace;
+        }
+        #output {
+            flex: 1;
+            overflow-y: auto;
+            margin: 10px 0;
+            font-size: 0.9em;
+            
+        }
+        .katex {
+            font-size: 1.1em !important;
+            padding-left: 0px !important;
+        }
+        .katex-display {
+            margin-left: 0px !important;
+            margin-bottom: 0px !important;
+            margin-top: 0px !important;
+        }
+        .editor-container h3 {
+            display: inline-block;
+            margin-right: 10px;
+        }
+        .editor-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            justify-content: space-between;
+        }
+        .editor-header h3 {
+            margin: 0;
+            margin-right: 10px;
+        }
+
+        /* Add dark mode styles */
+        body.dark-mode {
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+        }
+
+        .dark-mode .editor-container {
+            background: #2d2d2d;
+            border-color: #404040;
+        }
+
+        .dark-mode .output-container {
+            background: #1e1e1e;
+            border-color: #404040;
+            color: #e0e0e0;
+        }
+
+        .dark-mode #calculator-input {
+            background: #2d2d2d;
+            color: #e0e0e0;
+            border: 1px solid #404040;
+        }
+
+        .dark-mode .footer {
+            border-color: #404040;
+            color: #888;
+        }
+
+        .dark-mode button {
+            background: #2e7d32;
+        }
+
+        .dark-mode button:hover {
+            background: #1b5e20;
+        }
+
+        /* Update theme-toggle styles */
+        .theme-toggle {
+            position: absolute; 
+            bottom: 20px;    /* Change from top to bottom */
+            right: 20px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .dark-mode .theme-toggle {
+            background: #2e7d32;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="editor-container">
-            <h3>Input</h3>
+            <div class="editor-header">
+                <h3>Input</h3>
+                <div> Shift-Enter or <button onclick="evaluateCalculator()">Evaluate</button> </div>
+            </div>
             <textarea id="calculator-input" spellcheck="false" onkeydown="handleKeyPress(event)"></textarea>
-            <button onclick="evaluateCalculator()">Evaluate</button>
         </div>
         <div id="resizer" onmousedown="startDrag(event)"></div>
         <div class="output-container">
@@ -106,34 +214,60 @@
         </div>
     </div>
     <div class="footer">
-        Created by <a style = "color: #333;", href="https://www.linkedin.com/in/shiv-raja-b378a5216/" target="_blank">Shiv Raja</a> &nbsp; | &nbsp; 
+        Created by <a class = "dark-link", href="https://www.linkedin.com/in/shiv-raja-b378a5216/" target="_blank">Shiv Raja</a> &nbsp; | &nbsp; 
         Copyright © 2024 Shiv Raja &nbsp; | &nbsp;
         Powered by <a href="https://mathjs.org" target="_blank">mathjs.org</a> &nbsp; | &nbsp;
         Licensed under <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache 2.0</a>&nbsp;| &nbsp;
         <br>
-        <a style = "color: #333;" href="https://github.com/sr23k/engineering_calculator" target="_blank">github.com/sr23k/engineering_calculator</a>
+        <a class = "dark-link", href="https://github.com/sr23k/engineering_calculator" target="_blank">github.com/sr23k/engineering_calculator</a>
         v0.0 &nbsp; | &nbsp;  <a href="engineering_calculator_v0p0.html" download>Download for offline use</a>  &nbsp; | &nbsp; WIP: double-check outputs
+        <button class="theme-toggle" onclick="toggleTheme()">Toggle Theme</button>
     </div>
     
     <script>
-    let startX, startWidth, startOutputWidth;
-        function startDrag(e) {
-            startX = e.clientX;
-            startWidth = parseInt(window.getComputedStyle(document.querySelector('.editor-container')).width, 10);
-            startOutputWidth = parseInt(window.getComputedStyle(document.querySelector('.output-container')).width, 10);
-            document.documentElement.addEventListener('mousemove', doDrag, false);
-            document.documentElement.addEventListener('mouseup', stopDrag, false);
-        }
-        function doDrag(e) {
-            const newWidth = startWidth + e.clientX - startX;
-            const newOutputWidth = startOutputWidth - (e.clientX - startX);
-            document.querySelector('.editor-container').style.flex = '0 0 ' + newWidth + 'px';
-            document.querySelector('.output-container').style.flex = '0 0 ' + newOutputWidth + 'px';
-        }
-        function stopDrag() {
-            document.documentElement.removeEventListener('mousemove', doDrag, false);
-            document.documentElement.removeEventListener('mouseup', stopDrag, false);
-        }
+    let startX, startWidthPercent;
+    const minWidthPercent = 20;
+    const maxWidthPercent = 80;
+
+    function startDrag(e) {
+        e.preventDefault();  // Prevent text selection while dragging
+        startX = e.clientX;
+        const editorContainer = document.querySelector('.editor-container');
+        const containerWidth = document.querySelector('.container').offsetWidth;
+        startWidthPercent = (editorContainer.offsetWidth / containerWidth) * 100;
+        
+        document.addEventListener('mousemove', doDrag);
+        document.addEventListener('mouseup', stopDrag);
+    }
+
+    function doDrag(e) {
+        const container = document.querySelector('.container');
+        const editorContainer = document.querySelector('.editor-container');
+        const outputContainer = document.querySelector('.output-container');
+        
+        const containerWidth = container.offsetWidth;
+        const deltaX = e.clientX - startX;
+        const deltaPercent = (deltaX / containerWidth) * 100;
+        let newWidthPercent = Math.min(maxWidthPercent, Math.max(minWidthPercent, startWidthPercent + deltaPercent));
+        
+        editorContainer.style.flex = `0 0 ${newWidthPercent}%`;
+        outputContainer.style.flex = `0 0 ${100 - newWidthPercent - 2}%`;  // Subtract resizer width percentage
+    }
+
+    function stopDrag() {
+        document.removeEventListener('mousemove', doDrag);
+        document.removeEventListener('mouseup', stopDrag);
+    }
+
+    // Initialize containers with percentage-based widths
+    document.addEventListener('DOMContentLoaded', () => {
+        const defaultWidthPercent = 49; // Slightly less than 50 to account for resizer
+        const editorContainer = document.querySelector('.editor-container');
+        const outputContainer = document.querySelector('.output-container');
+        
+        editorContainer.style.flex = `0 0 ${defaultWidthPercent}%`;
+        outputContainer.style.flex = `0 0 ${100 - defaultWidthPercent - 2}%`;  // Subtract resizer width percentage
+    });
     </script>
 
     <script src="dimension.js"></script>   
@@ -333,6 +467,7 @@
 
             const eqnAssign = /^[^=]*=[^=]*==[^=]*$/;
             const standAloneEqn = /^[^\=]*==[^=]*$/;
+            output.innerHTML = '';
 
             // Reset parser (but keep constants) and equations
             parser.clear();
@@ -344,40 +479,51 @@
             try {
                 for (let line of lines) {
                     line = line.trim();
-                    if (!line || line.startsWith('//')) {
-                        results.push(line);
+                    if(!line){
+                        const commentDiv = document.createElement('br');
+                        output.appendChild(commentDiv);
+                        continue;
+                    }
+                    if (line.startsWith('//')) {
+                        // Create a text node for comments
+                        const commentDiv = document.createElement('div');
+                        commentDiv.textContent = line;
+                        output.appendChild(commentDiv);
                         continue;
                     }
 
                     try {
+                        let resultText;
                         if (line.includes('solve(')) {
-                            // Parse solve function call
+                            // Handle solve function...
                             const match = line.match(/solve\(([^)]+)\)/)[1].split(/\s*,\s*/);
                             if (match) {
                                 const equationName = match[0].trim();
                                 const variable = match[1].trim();
-                                let solution = null
+                                let solution;
                                 if(match.length > 2){
                                     const initialValue = match[2].trim();
                                     solution = solveEquation(equationName, variable, initialValue);
+                                    resultText = `\\mathrm{solve}\\left(\\mathrm{${equationName}}, \\mathrm{${variable}}, ${initialValue}\\right) = ${math.parse(solution.toString()).toTex()}`;
                                 } else {
                                     solution = solveEquation(equationName, variable);
+                                    resultText = `\\mathrm{solve}\\left(\\mathrm{${equationName}}, \\mathrm{${variable}}\\right) = ${math.parse(solution.toString()).toTex()}`;
                                 }
-                                results.push(`${line} = ${solution.toString()}`);
                                 parser.set(variable, solution);
                             }
                         } else if (eqnAssign.test(line)) {
                             // Store equation for later use
                             const parts = line.split('=');
                             const name = parts[0].trim();
-                            const equation = line.substring(line.indexOf('=') + 1).trim();
+                            const equation = line.substring(line.indexOf('=') + 1).trim().split('//')[0].trim();
                             equations[name] = equation;
-                            results.push(line);
+                            console.log(math.parse(equation).toTex());
+                            resultText = `\\mathrm{${name}} := ${math.parse(equation).toTex()}`;
                         } else if (standAloneEqn.test(line)){
                             variable = findFreeVariable(line);
                             const equationName = "dummy";
                             solution = solveEquation(equationName, variable);
-                            results.push(`${line} = ${solution.toString()}`);
+                            resultText = `\\mathrm{${line}} = ${math.parse(solution.toString()).toTex()}`;
                             parser.set(variable, solution);
                         } else if (line.includes('=')) {
                             // Handle assignment
@@ -386,19 +532,38 @@
                             const expr = parts[1].split('//')[0].trim(); // Remove comments
                             const result = parser.evaluate(expr);
                             parser.set(name, result);
-                            results.push(`${name} = ${result.toString()}`);
-                        } else {
+                            resultText = `${name} := ${math.parse(expr.toString()).toTex()} \\to ${math.parse(result.toString()).toTex()}`;
+                        } else if(line.includes('to')){
+                            // Handle unit conversion
+                            const parts = line.split('to');
+                            const value = parts[0].trim();
+                            const unit = parts[1].trim();
+                            const result = parser.evaluate(line);
+                            resultText = `\\text{${value}} \\to \\mathrm{${unit}} = ${math.parse(result.toString()).toTex()}`;
+                        } else{
                             // Direct evaluation
                             const result = parser.evaluate(line);
-                            results.push(`${line} = ${result.toString()}`);
+                            resultText = `\\text{${line}} := ${math.parse(result.toString()).toTex()}`;
                         }
+
+                        // Create a new div for each result and render with KaTeX
+                        const resultDiv = document.createElement('div');
+                        katex.render(resultText, resultDiv, {
+                            displayMode: true,
+                            throwOnError: false,
+                            fleqn: true,
+                        });
+                        output.appendChild(resultDiv);
+
                     } catch (error) {
-                        results.push(`Error in line "${line}": ${error.message}`);
+                        const errorDiv = document.createElement('div');
+                        errorDiv.className = 'error';
+                        errorDiv.textContent = `Error in line "${line}": ${error.message}`;
+                        output.appendChild(errorDiv);
                     }
                 }
-                output.textContent = results.join('\n');
             } catch (error) {
-                output.textContent = `Error: ${error.message}`;
+                output.innerHTML = `Error: ${error.message}`;
             }
         }
         document.getElementById('calculator-input').value = `// Function reference: https://mathjs.org/docs/reference/functions.html
@@ -419,14 +584,32 @@ solve(eqn1, V, 0.1)
 V to in^3
 
 // Example with speed calculation
-v_initial = 10 m/s
+v_i = 10 m/s
 t = 2 s
 d = 100 m
 
 // Find acceleration needed to cover distance
 a = 5 m/s^2  // initial guess can be directly specified
-eqn2 = v_initial * t + 0.5 * a * t^2 == d
+eqn2 = v_i * t + 0.5 * a * t^2 == d
 solve(eqn2, a)`;
+    </script>
+
+    <script>
+        // Add this before your existing scripts
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            // Optionally save preference
+            const isDarkMode = document.body.classList.contains('dark-mode');
+            localStorage.setItem('darkMode', isDarkMode);
+        }
+
+        // Load saved theme preference
+        document.addEventListener('DOMContentLoaded', () => {
+            const isDarkMode = localStorage.getItem('darkMode') === 'true';
+            if (isDarkMode) {
+                document.body.classList.add('dark-mode');
+            }
+        });
     </script>
 </body>
 </html>
