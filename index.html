@@ -216,8 +216,8 @@
             background: #1b5e20;
         }
 
-        /* Update theme-toggle styles to accommodate both buttons */
-        .theme-toggle, .reset-input {
+        /* Update theme-toggle styles to accommodate all buttons */
+        .theme-toggle, .reset-input, .file-io {
             position: absolute; 
             bottom: 20px;
             padding: 8px 12px;
@@ -236,7 +236,15 @@
             right: 140px;  /* Position to the left of theme toggle */
         }
 
-        .dark-mode .theme-toggle, .dark-mode .reset-input {
+        .save-file {
+            left: 20px;  /* Position on the left side */
+        }
+
+        .load-file {
+            left: 120px;  /* Position to the right of save button */
+        }
+
+        .dark-mode .theme-toggle, .dark-mode .reset-input, .dark-mode .file-io {
             background: #2e7d32;
         }
 
@@ -270,6 +278,11 @@
         .output-copyable:hover {
             background-color: rgba(128, 128, 128, 0.1);
         }
+
+        /* Hide the file input element */
+        #fileInput {
+            display: none;
+        }
     </style>
 </head>
 <body onkeydown="handleKeyPress(event)">
@@ -289,7 +302,10 @@
         </div>
     </div>
     <div class="footer">
-        Created by <a class = "dark-link", href="https://www.linkedin.com/in/shiv-raja-b378a5216/" target="_blank">Shiv Raja</a> &nbsp; | &nbsp; 
+        <button class="file-io save-file" onclick="saveToFile()">Save to File</button>
+        <button class="file-io load-file" onclick="loadFromFile()">Load File</button>
+        <span style="margin-right: 20px;"></span>
+        Created by <a class="dark-link" href="https://www.linkedin.com/in/shiv-raja-b378a5216/" target="_blank">Shiv Raja</a> &nbsp; | &nbsp; 
         Copyright © 2024 Shiv Raja &nbsp; | &nbsp;
         Powered by <a href="https://mathjs.org" target="_blank">mathjs.org</a> &nbsp; | &nbsp;
         Licensed under <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache 2.0</a>
@@ -783,6 +799,44 @@ solve(eqn2, a)`;
                 document.getElementById('calculator-input').value = defaultContent;
                 saveInput();  // Save the default content to localStorage
             }
+        }
+    </script>
+
+    <script>
+        // Add this near your other script blocks
+        function saveToFile() {
+            const content = document.getElementById('calculator-input').value;
+            const dataUri = 'data:text/plain;charset=utf-8,' + encodeURIComponent(content);
+            const a = document.createElement('a');
+            a.href = dataUri;
+            a.download = '';  // Empty string triggers "Save As" dialog
+            a.click();
+        }
+
+        function loadFromFile() {
+            // Create file input element if it doesn't exist
+            let fileInput = document.getElementById('fileInput');
+            if (!fileInput) {
+                fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.id = 'fileInput';
+                fileInput.accept = '.txt';
+                document.body.appendChild(fileInput);
+                
+                fileInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            document.getElementById('calculator-input').value = e.target.result;
+                            saveInput(); // Save to localStorage after loading
+                        };
+                        reader.readAsText(file);
+                    }
+                });
+            }
+            
+            fileInput.click();
         }
     </script>
 
