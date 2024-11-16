@@ -32,6 +32,18 @@ try{
         }
     })
 
+    // Helper function to check for conflicts in var_vals
+    function checkVarValsConflict(map1, map2) {
+        for (const [key, value1] of map1) {
+            if (map2.has(key)) {
+                const value2 = map2.get(key);
+                if (JSON.stringify(value1) !== JSON.stringify(value2)) {
+                    throw new Error("Conflict in variable resolution");
+                }
+            }
+        }
+    }
+
     // Addition and Subtraction rules for Dimension class
     const add = math.typed('add', {
         'Dimension, Dimension': function (a, b) {
@@ -65,6 +77,9 @@ try{
                 throw new Error("Cannot add/subtract two unknown dimensions.");
             }
 
+            // Check for conflicts before merging
+            checkVarValsConflict(a.var_vals, b.var_vals);
+            
             // Merge var_vals from both input maps into result's var_vals map
             for (const [key, value] of a.var_vals) {
                 result.var_vals.set(key, value);
@@ -112,6 +127,9 @@ try{
                 }
             }
 
+            // Check for conflicts before merging
+            checkVarValsConflict(a.var_vals, b.var_vals);
+            
             // Merge var_vals from both input maps into result's var_vals map
             for (const [key, value] of a.var_vals) {
                 result.var_vals.set(key, value);
@@ -151,6 +169,9 @@ try{
                 }
             }
 
+            // Check for conflicts before merging
+            checkVarValsConflict(a.var_vals, b.var_vals);
+            
             // Merge var_vals from both input maps into result's var_vals map
             for (const [key, value] of a.var_vals) {
                 result.var_vals.set(key, value);
