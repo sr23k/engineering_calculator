@@ -51,6 +51,9 @@
             // Set the content of the active tab
             document.getElementById('calculator-input').value = tabStates[tabStates.activeTab].input;
             document.getElementById('output').innerHTML = tabStates[tabStates.activeTab].output;
+            
+            // Reattach copy listeners
+            attachCopyListeners();
         }
 
         // Create function to set initial content
@@ -502,11 +505,6 @@
             parser.set(name, value);
         });
 
-        function findFreeVariable(equation){
-            console.log(math.parse(equation));
-            return 1;
-        }
-
         // Function to detect unit from an equation
         function detectUnit(equation, variable) {
             try {
@@ -722,9 +720,10 @@
             });
             
             if (copyText) {
-                // Find all base spans and add click handlers
                 const katexSpan = resultDiv.querySelector('.katex-html');
                 katexSpan.classList.add('output-copyable');
+
+                katexSpan.setAttribute('data-math-output', copyText);
 
                 katexSpan.addEventListener('click', async function(e) {
                     e.stopPropagation(); // Prevent event bubbling
@@ -1036,6 +1035,32 @@ solve(eqn2, a)`;
             
             switchTab(nextId);
             tabStates.nextTabId++;  // Increment nextTabId in tabStates
+        }
+
+        function attachCopyListeners() {
+            const copyableElements = document.querySelectorAll('.output-copyable');
+            copyableElements.forEach(element => {
+
+                element.addEventListener('click', async function(e) {
+                    e.stopPropagation();
+                    try {
+                        // Get the text content from the previous sibling (where math.js output is stored)
+                        const mathOutput = element.getAttribute('data-math-output');
+                        if (mathOutput) {
+                            await navigator.clipboard.writeText(mathOutput);
+
+                            // Visual feedback
+                            const originalBg = element.style.backgroundColor;
+                            element.style.backgroundColor = 'rgba(128, 128, 128, 0.3)';
+                            setTimeout(() => {
+                                element.style.backgroundColor = originalBg;
+                            }, 200);
+                        }
+                    } catch (err) {
+                        console.error('Failed to copy text:', err);
+                    }
+                });
+            });
         }
     </script>
 
