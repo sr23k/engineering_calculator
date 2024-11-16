@@ -80,6 +80,12 @@ try{
         },
         'Dimension, Unit': function(a, b){
             return math.add(new Dimension(b.dimensions), a);
+        },
+        'number, Dimension': function(a, b){
+            return math.add(new Dimension([0, 0, 0, 0, 0, 0, 0, 0, 0]), b);
+        },
+        'Dimension, number': function(a, b){
+            return math.add(new Dimension([0, 0, 0, 0, 0, 0, 0, 0, 0]), a);
         }
     });
 
@@ -181,12 +187,26 @@ try{
         }
     });
 
+    const sqrt = math.typed('sqrt', {
+        'Dimension': function (a){
+            return math.pow(a, 0.5);
+        }
+    });
+
     function dimension(value, variable = null){
         return new Dimension(value, variable);
     }
 
-    // import in math.js, extend the existing function `add` with support for Dimension
-    math.import({add: add, subtract : subtract, multiply : multiply, divide : divide, pow : pow, dimension : dimension});
+    // Update the math.import to include sqrt
+    math.import({
+        add: add, 
+        subtract: subtract, 
+        multiply: multiply, 
+        divide: divide, 
+        pow: pow, 
+        sqrt: sqrt,
+        dimension: dimension
+    });
 }catch(error){
     console.log(error.message);
 }

@@ -489,11 +489,10 @@
                     parser.set(variable, math.unit(x, unit));
                     const left = parser.evaluate(leftSide);
                     const right = parser.evaluate(rightSide);
-                    // Check if both sides have units, then convert them to scalars for comparison
-                    if (left.units && right.units) {
+                    if(right.dimensions || left.dimensions){
                         return math.subtract(left, right).toNumber();
                     } else {
-                        throw new Error('Units do not match in equation');
+                        return math.subtract(left, right);
                     }
                 } catch (error){
                     throw new Error("Failed to evaluate expression: " + error.message);
@@ -527,19 +526,24 @@
             function parseInputsforPrinting(){
                 const oldMap = parser.getAllAsMap();
                 parsedEquation = math.parse(equation);
-                const transformed = parsedEquation.transform(function (node, path, parent) {
-                    if (node.isSymbolNode && node.name !== variable) {
-                        return math.parse(parser.evaluate(node.name).toString());
-                    }
-                    else if(node.isSymbolNode && node.name === variable){
-                        return new math.AssignmentNode(node, math.parse(parser.evaluate(unit).toString()))
-                    }
-                    else {
-                        return node
-                    }
-                })
-                parsingResult = transformed.toTex();
-                return parsingResult;
+                unitString = parser.evaluate(unit).toString();
+                if(unitString){
+                    const transformed = parsedEquation.transform(function (node, path, parent) {
+                        if (node.isSymbolNode && node.name !== variable) {
+                            return math.parse(parser.evaluate(node.name).toString());
+                        }
+                        else if(node.isSymbolNode && node.name === variable){
+                            return new math.AssignmentNode(node, math.parse(unitString))
+                        }
+                        else {
+                            return node
+                        }
+                    })
+                    parsingResult = transformed.toTex().replaceAll(":=", "\\colonequals");
+                    return parsingResult;
+                } else{
+                    return parsedEquation.toTex().replaceAll(":=", "\\colonequals");
+                }
             }
 
             try {
@@ -549,12 +553,12 @@
                 if (initialValue !== null){
                     return [`\\mathrm{solve}\\left(\\mathrm{${equationName}}, \\mathrm{${variable}}, ${parsedInitialValue}\\right) \\to`,
                             `\\to ${parsingResult}`,
-                            `\\to \\mathrm{${variable}} := ${math.parse(result.toString()).toTex()}`,
+                            `\\to \\mathrm{${variable}} \\colonequals ${math.parse(result.toString()).toTex()}`,
                             result];
                 } else {
                     return [`\\mathrm{solve}\\left(\\mathrm{${equationName}}, \\mathrm{${variable}}\\right) \\to`,
                             `\\to ${parsingResult}`,
-                            `\\to \\mathrm{${variable}} := ${math.parse(result.toString()).toTex()}`,
+                            `\\to \\mathrm{${variable}} \\colonequals ${math.parse(result.toString()).toTex()}`,
                             result];
                 }
             } catch(error){
@@ -646,7 +650,7 @@
                             const name = parts[0].trim();
                             const equation = line.substring(line.indexOf('=') + 1).trim().split('//')[0].trim();
                             equations[name] = equation;
-                            pushResult(`\\mathrm{${name}} := ${math.parse(equation).toTex()}`);
+                            pushResult(`\\mathrm{${name}} \\colonequals ${math.parse(equation).toTex()}`);
                         } else if (standAloneEqn.test(line)){
                             variable = findFreeVariable(line);
                             const equationName = "dummy";
@@ -658,9 +662,11 @@
                             const parts = line.split('=');
                             const name = parts[0].trim();
                             const expr = parts[1].split('//')[0].trim(); // Remove comments
+                            console.log(expr);
                             const result = parser.evaluate(expr);
+                            console.log(result);
                             parser.set(name, result);
-                            pushResult(`${name} := ${math.parse(expr.toString()).toTex()} \\to ${math.parse(result.toString()).toTex()}`);
+                            pushResult(`${name} \\colonequals ${math.parse(expr.toString()).toTex()} \\to ${math.parse(result.toString()).toTex()}`);
                         } else if(line.includes('to')){
                             // Handle unit conversion
                             const parts = line.split('to');
@@ -671,7 +677,7 @@
                         } else{
                             // Direct evaluation
                             const result = parser.evaluate(line);
-                            pushResult(`\\text{${line}} := ${math.parse(result.toString()).toTex()}`)
+                            pushResult(`\\text{${line}} \\colonequals ${math.parse(result.toString()).toTex()}`)
                         }
 
                         // Create a new div for each result and render with KaTeX
