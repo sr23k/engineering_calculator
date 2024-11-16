@@ -260,9 +260,19 @@
         .save-message.show {
             opacity: 1;
         }
+
+        .output-copyable {
+            cursor: pointer;
+            position: relative;
+            transition: background-color 0.2s;
+        }
+
+        .output-copyable:hover {
+            background-color: rgba(128, 128, 128, 0.1);
+        }
     </style>
 </head>
-<body>
+<body onkeydown="handleKeyPress(event)">
     <div class="container">
         <div class="editor-container">
             <div class="editor-header">
@@ -270,7 +280,7 @@
                 <div class="save-message" id="saveMessage">Saved</div>
                 <div> Shift+Enter or <button onclick="evaluateCalculator()">Evaluate</button> </div>
             </div>
-            <textarea id="calculator-input" spellcheck="false" onkeydown="handleKeyPress(event)"></textarea>
+            <textarea id="calculator-input" spellcheck="false"></textarea>
         </div>
         <div id="resizer" onmousedown="startDrag(event)"></div>
         <div class="output-container">
@@ -539,27 +549,27 @@
                             return node
                         }
                     })
-                    parsingResult = transformed.toTex().replaceAll(":=", "\\colonequals");
+                    parsingResult = transformed
                     return parsingResult;
                 } else{
-                    return parsedEquation.toTex().replaceAll(":=", "\\colonequals");
+                    return parsedEquation;
                 }
             }
 
             try {
-                const parsingResult = parseInputsforPrinting();
+                const parsingResult = parseInputsforPrinting()
                 const solution = newtonRaphson(evaluateEquation, parsedInitialValue);
                 const result = math.unit(solution, unit);
                 if (initialValue !== null){
                     return [`\\mathrm{solve}\\left(\\mathrm{${equationName}}, \\mathrm{${variable}}, ${parsedInitialValue}\\right) \\to`,
-                            `\\to ${parsingResult}`,
+                            `\\to ${parsingResult.toTex().replaceAll(":=", "\\colonequals")}`,
                             `\\to \\mathrm{${variable}} \\colonequals ${math.parse(result.toString()).toTex()}`,
-                            result];
+                            result, parsingResult.toString()];
                 } else {
                     return [`\\mathrm{solve}\\left(\\mathrm{${equationName}}, \\mathrm{${variable}}\\right) \\to`,
-                            `\\to ${parsingResult}`,
+                            `\\to ${parsingResult.toTex().replaceAll(":=", "\\colonequals")}`,
                             `\\to \\mathrm{${variable}} \\colonequals ${math.parse(result.toString()).toTex()}`,
-                            result];
+                            result, parsingResult.toString()];
                 }
             } catch(error){
                 throw new Error(`Failed to solve equation: ${error.message}`);
@@ -578,13 +588,38 @@
             }
         }
 
-        function pushResult(resultText){
+        function pushResult(resultText, copyText = null) {
             const resultDiv = document.createElement('div');
+            
+            // First render with KaTeX to get the HTML structure
             katex.render(resultText, resultDiv, {
                 displayMode: true,
                 throwOnError: false,
                 fleqn: true,
             });
+            
+            if (copyText) {
+                // Find all base spans and add click handlers
+                const katexSpan = resultDiv.querySelector('.katex-html');
+                katexSpan.classList.add('output-copyable');
+
+                katexSpan.addEventListener('click', async function(e) {
+                    e.stopPropagation(); // Prevent event bubbling
+                    
+                    try {
+                        await navigator.clipboard.writeText(copyText);
+
+                        // Visual feedback
+                        const originalBg = katexSpan.style.backgroundColor;
+                        katexSpan.style.backgroundColor = 'rgba(128, 128, 128, 0.3)';
+                        setTimeout(() => {
+                            katexSpan.style.backgroundColor = originalBg;
+                        }, 200);
+                    } catch (err) {
+                        console.error('Failed to copy text:', err);
+                    }
+                });
+            }
             output.appendChild(resultDiv);
         }
 
@@ -632,15 +667,15 @@
                                 let solution;
                                 if(match.length > 2){
                                     const initialValue = match[2].trim();
-                                    [result1, result2, result3, result4] = solveEquation(equationName, variable, initialValue);
+                                    [result1, result2, result3, result4, result5] = solveEquation(equationName, variable, initialValue);
                                     pushResult(result1);
-                                    pushResult(result2);
-                                    pushResult(result3);
+                                    pushResult(result2, result5);
+                                    pushResult(result3, result4.toString());
                                 } else {
-                                    [result1, result2, result3, result4] = solveEquation(equationName, variable);
+                                    [result1, result2, result3, result4, result5] = solveEquation(equationName, variable);
                                     pushResult(result1);
-                                    pushResult(result2);
-                                    pushResult(result3);
+                                    pushResult(result2, result5);
+                                    pushResult(result3, result4.toString());
                                 }
                                 parser.set(variable, result4);
                             }
@@ -650,12 +685,12 @@
                             const name = parts[0].trim();
                             const equation = line.substring(line.indexOf('=') + 1).trim().split('//')[0].trim();
                             equations[name] = equation;
-                            pushResult(`\\mathrm{${name}} \\colonequals ${math.parse(equation).toTex()}`);
+                            pushResult(`\\text{${name}} \\colonequals \\mathrm{${math.parse(equation).toTex()}}`, equation);
                         } else if (standAloneEqn.test(line)){
                             variable = findFreeVariable(line);
                             const equationName = "dummy";
                             solution = solveEquation(equationName, variable);
-                            pushResult(`\\mathrm{${line}} = ${math.parse(solution.toString()).toTex()}`);
+                            pushResult(`\\text{${line}} = ${math.parse(solution.toString()).toTex()}`);
                             parser.set(variable, solution);
                         } else if (line.includes('=')) {
                             // Handle assignment
@@ -666,18 +701,18 @@
                             const result = parser.evaluate(expr);
                             console.log(result);
                             parser.set(name, result);
-                            pushResult(`${name} \\colonequals ${math.parse(expr.toString()).toTex()} \\to ${math.parse(result.toString()).toTex()}`);
+                            pushResult(`\\text{${name}} \\colonequals ${math.parse(expr.toString()).toTex()} \\to ${math.parse(result.toString()).toTex()}`);
                         } else if(line.includes('to')){
                             // Handle unit conversion
                             const parts = line.split('to');
                             const value = parts[0].trim();
                             const unit = parts[1].trim();
                             const result = parser.evaluate(line);
-                            pushResult(`\\text{${value}} \\to \\mathrm{${unit}} = ${math.parse(result.toString()).toTex()}`)
+                            pushResult(`\\text{${value}} \\to \\mathrm{${unit}} = ${math.parse(result.toString()).toTex()}`, result.toString())
                         } else{
                             // Direct evaluation
                             const result = parser.evaluate(line);
-                            pushResult(`\\text{${line}} \\colonequals ${math.parse(result.toString()).toTex()}`)
+                            pushResult(`\\text{${line}} \\to ${math.parse(result.toString()).toTex()}`, result.toString())
                         }
 
                         // Create a new div for each result and render with KaTeX
@@ -750,5 +785,6 @@ solve(eqn2, a)`;
             }
         }
     </script>
+
 </body>
 </html>
