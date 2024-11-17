@@ -64,3 +64,41 @@ function createNewTab() {
     switchTab(nextId);
     tabStates.nextTabId++;  // Increment nextTabId in tabStates
 }
+
+function loadTabsFromJSON(json){
+    const parsedTabs = JSON.parse(json);
+    tabStates = {
+        ...parsedTabs,
+        nextTabId: parsedTabs.nextTabId || 3,
+        activeTab: parsedTabs.activeTab || 1
+    };
+    
+    // Clear existing tabs except the new tab button
+    const tabContainer = document.querySelector('.tab-container');
+    const newTabButton = document.querySelector('.new-tab');
+    while (tabContainer.firstChild) {
+        if (tabContainer.firstChild === newTabButton) break;
+        tabContainer.removeChild(tabContainer.firstChild);
+    }
+    
+    // Create tab elements for each saved tab
+    Object.keys(tabStates).forEach(tabId => {
+        if (tabId !== 'nextTabId' && tabId !== 'activeTab') {
+            const newTab = document.createElement('div');
+            newTab.className = 'tab';
+            if (parseInt(tabId) === tabStates.activeTab) {
+                newTab.className += ' active';
+            }
+            newTab.dataset.tab = tabId;
+            newTab.innerHTML = `Tab ${tabId} <span class="tab-close">×</span>`;
+            tabContainer.insertBefore(newTab, newTabButton);
+        }
+    });
+    
+    // Set the content of the active tab
+    document.getElementById('calculator-input').value = tabStates[tabStates.activeTab].input;
+    document.getElementById('output').innerHTML = tabStates[tabStates.activeTab].output;
+    
+    // Reattach copy listeners
+    attachCopyListeners();
+}
