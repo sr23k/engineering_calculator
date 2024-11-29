@@ -1,13 +1,10 @@
-let pyodide = null;
+let pyodideWorker = null;
 
 // Initialize pyodide when the page loads
 window.addEventListener('load', async () => {
     try {
         console.log('Initializing Python environment...');
-        pyodide = await loadPyodide({
-            packages: ['sympy'],
-            stdout: (msg) => console.log(`Pyodide: ${msg}`),
-        });
+        pyodideWorker = new Worker('./deps/pyodide/webworker.js');
         console.log('Ready!');
     } catch (error) {
         console.error(`Failed to initialize: ${error.message}`);
@@ -69,11 +66,20 @@ async function evaluateCalculator() {
 
     output.innerHTML = '';
     try {
-        if (!pyodide) {
+        if (!pyodideWorker) {
             throw new Error('Python environment not initialized');
         }
-        results = await pyodide.runPythonAsync(input);
-        pushResult(results.results);
+        
+        const results = await new Promise((resolve, reject) => {
+            // Set up one-time message handler
+            pyodideWorker.onmessage = (event) => resolve(event.data);
+            pyodideWorker.onerror = (error) => reject(error);
+            
+            // Send the input to the worker
+            pyodideWorker.postMessage({ python: input });
+        });
+        
+        pushResult(results.result);
     } catch (error) {
         output.innerHTML = `Error: ${error.message}`;
     }
