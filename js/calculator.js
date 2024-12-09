@@ -3,11 +3,41 @@ let pyodideWorker = null;
 // Initialize pyodide when the page loads
 window.addEventListener('load', async () => {
     try {
+        const initMessage = document.getElementById('initMessage');
+        initMessage.classList.add('show');
+        initMessage.textContent = 'Initializing Python environment...';
+
         console.log('Initializing Python environment...');
         pyodideWorker = new Worker('./deps/pyodide/webworker.js');
+        pyodideWorker.postMessage({ python: "" });
+        await new Promise((resolve, reject) => {
+            const timeoutId = setTimeout(() => {
+                reject(new Error('Initialization timeout'));
+            }, 30000);
+
+            pyodideWorker.onmessage = (event) => {
+                if (event.data.type === 'status' && event.data.status === 'initialized') {
+                    clearTimeout(timeoutId);
+                    resolve();
+                }else{
+                    reject(new Error('Initialization failed'));
+                }
+            };
+        });
+        
+        pyodideWorker.ready = true;
         console.log('Ready!');
+        
+        // Fade out the initialization message
+        initMessage.textContent = 'Ready!';
+        setTimeout(() => {
+            initMessage.style.display = 'none';
+        }, 1000); // Hide after fade animation completes
     } catch (error) {
         console.error(`Failed to initialize: ${error.message}`);
+        const initMessage = document.getElementById('initMessage');
+        initMessage.textContent = 'Failed to initialize Python environment';
+        initMessage.style.color = '#d32f2f';
     }
 });
 
@@ -66,20 +96,26 @@ async function evaluateCalculator() {
 
     output.innerHTML = '';
     try {
-        if (!pyodideWorker) {
+        if (!pyodideWorker.ready) {
             throw new Error('Python environment not initialized');
         }
-        
-        const results = await new Promise((resolve, reject) => {
-            // Set up one-time message handler
-            pyodideWorker.onmessage = (event) => resolve(event.data);
-            pyodideWorker.onerror = (error) => reject(error);
-            
-            // Send the input to the worker
-            pyodideWorker.postMessage({ python: input });
-        });
-        
-        pushResult(results.result);
+        pyodideWorker.onmessage = (event) => {
+            switch(event.data.type) {
+                case 'result':
+                    if(event.data.result){
+                        console.log(event.data.result);
+                        pyodideWorker.postMessage({ python: `print(${event.data.result})` });
+                    }
+                    break;
+                case 'output':
+                    pushResult(event.data.result);
+                    break;
+                }
+            };
+        pyodideWorker.postMessage({ python: "clear()" });
+        for (let line of input.split('\n')){
+            pyodideWorker.postMessage({ python: line });
+        }
     } catch (error) {
         output.innerHTML = `Error: ${error.message}`;
     }

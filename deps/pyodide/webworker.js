@@ -13,12 +13,20 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
       if (!self.pyodide) {
         self.pyodide = await loadPyodide({
           packages: ['sympy'],
-          stdout: (msg) => console.log(`Pyodide: ${msg}`),
+          stdout: (msg) => {
+            console.log(`Pyodide: ${msg}`);
+            self.postMessage({ type: 'output', result: msg });
+          },
+          fullStdLib: false
         });
         await self.pyodide.loadPackagesFromImports(data.python);
+        await self.pyodide.runPythonAsync("from sympy import *");
+        await self.pyodide.runPythonAsync("from sympy.physics.units import *");
+        await self.pyodide.runPythonAsync("");
+        self.postMessage({ type: 'status', status: 'initialized' });
       }
-      let results = self.pyodide.runPython(data.python);
-      self.postMessage({ results });
+      let results = await self.pyodide.runPythonAsync(data.python);
+      self.postMessage({ type: 'result', result: results });
     } catch (e) {
       self.postMessage({ error: e.message + "\n" + e.stack });
     }

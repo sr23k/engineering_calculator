@@ -1,2 +1,2 @@
 # engineering_calculator
-math.js-based static HTML calculator with some quality of life features
+Pyodide and Sympy-based static HTML calculator with some quality of life features

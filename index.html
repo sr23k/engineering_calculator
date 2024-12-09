@@ -1,14 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!--
-        This project uses math.js, which is licensed under the Apache License, Version 2.0 (the "License").
-        You may not use this file except in compliance with the License.
-        You may obtain a copy of the License at https://www.apache.org/licenses/LICENSE-2.0
-        Unless required by applicable law or agreed to in writing, software distributed under the License
-        is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-        See the License for the specific language governing permissions and limitations under the License.
-    -->
     <meta charset="UTF-8">
     <title>Engineering Calculator</title>
     <!-- Move both checks to a single script block at the very start -->
@@ -349,6 +341,18 @@
             background: #2e7d32;
             border-color: #2e7d32;
         }
+
+        .init-message {
+            font-weight: bold;
+            color: #4CAF50;
+            margin-right: 10px;
+            transition: opacity 1s ease-out;
+        }
+
+        .dark-mode .init-message {
+            color: #45a049;
+        }
+
     </style>
 </head>
 <body onkeydown="handleKeyPress(event)">
@@ -361,14 +365,17 @@
         <div class="editor-container">
             <div class="editor-header">
                 <h3>Input</h3>
-                <div class="save-message" id="saveMessage">Saved in browser</div>
+                <div class="save-message" id="saveMessage"><b>Saved in browser</b></div>
                 <div> Shift+Enter or <button onclick="evaluateCalculator()">Evaluate</button> </div>
             </div>
             <textarea id="calculator-input" spellcheck="false"></textarea>
         </div>
         <div id="resizer" onmousedown="startDrag(event)"></div>
         <div class="output-container">
-            <div class = "output-header"><h3>Results</h3></div>
+            <div class="output-header">
+                <h3>Results</h3>
+                <div class="init-message" id="initMessage"></div>
+            </div>
             <div id="output"></div>
         </div>
     </div>
@@ -378,7 +385,7 @@
         <span style="margin-right: 20px;"></span>
         Created by <a class="dark-link" href="https://www.linkedin.com/in/shiv-raja-b378a5216/" target="_blank">Shiv Raja</a> &nbsp; | &nbsp; 
         Copyright © 2024 Shiv Raja &nbsp; | &nbsp;
-        Powered by <a href="https://mathjs.org" target="_blank">mathjs.org</a> &nbsp; | &nbsp;
+        Powered by <a href="https://sympy.org" target="_blank">Sympy</a> and <a href="https://pyodide.org" target="_blank">Pyodide</a> &nbsp; | &nbsp;
         Licensed under <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache 2.0</a>
         <br>
         <a class = "dark-link", href="https://github.com/sr23k/engineering_calculator" target="_blank">github.com/sr23k/engineering_calculator</a>
