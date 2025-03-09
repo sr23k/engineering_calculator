@@ -20,7 +20,11 @@ window.addEventListener('load', async () => {
                     clearTimeout(timeoutId);
                     resolve();
                 }else{
-                    reject(new Error('Initialization failed'));
+                    if(event.data.type === 'error'){
+                        reject(new Error('Initialization failed: ' + event.data.error));
+                    }else{
+                        reject(new Error('Initialization failed'));
+                    }
                 }
             };
         });
@@ -83,7 +87,7 @@ function pushResult(resultText, copyText = null) {
                 }, 200);
             } catch (err) {
                 console.error('Failed to copy text:', err);
-            }
+            }   
         });
     }
     output.appendChild(resultDiv);
@@ -101,19 +105,18 @@ async function evaluateCalculator() {
         }
         pyodideWorker.onmessage = (event) => {
             switch(event.data.type) {
-                case 'result':
-                    if(event.data.result){
-                        console.log(event.data.result);
-                        pyodideWorker.postMessage({ python: `print(${event.data.result})` });
-                    }
-                    break;
                 case 'output':
                     pushResult(event.data.result);
                     break;
+                case 'error':
+                    // Line of error containing the error_type
+                    let result = event.data.error.split('\n').find(line => line.includes(event.data.error_type));
+                    pushResult(`\\text{${result}}`);
+                    break;
                 }
             };
-        pyodideWorker.postMessage({ python: "clear()" });
-        for (let line of input.split('\n')){
+        pyodideWorker.postMessage({clear: true });
+        for (let line of input.split('\n')){    
             pyodideWorker.postMessage({ python: line });
         }
     } catch (error) {
